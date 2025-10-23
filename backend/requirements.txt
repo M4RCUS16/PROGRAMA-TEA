@@ -1,0 +1,9 @@
+Django==5.0
+djangorestframework==3.15.1
+dj-database-url
+gunicorn
+psycopg2-binary
+drf-spectacular
+whitenoise
+djangorestframework-simplejwt
+reportlab
