@@ -507,6 +507,50 @@ html,
   gap: 2.2rem;
 }
 
+.search-card {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.search-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  align-items: flex-end;
+}
+
+.search-panel > div {
+  flex: 1 1 220px;
+}
+
+.search-panel label {
+  flex: 1 1 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.search-panel input {
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  font-family: "Inter", sans-serif;
+  background: rgba(15, 23, 42, 0.02);
+}
+
+.search-panel input:focus {
+  outline: 2px solid rgba(37, 99, 235, 0.4);
+  outline-offset: 2px;
+}
+
+.search-hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 
 .chart-frame {
   position: relative;

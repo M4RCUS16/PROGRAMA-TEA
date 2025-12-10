@@ -32,6 +32,7 @@ export default function PacienteForm() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [status, setStatus] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const loadPatients = async () => {
     try {
@@ -164,16 +165,72 @@ export default function PacienteForm() {
     [activePatients, archivedPatients]
   );
 
+  const normalizeText = (value) =>
+    (value || "")
+      .toString()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+  const normalizedSearch = normalizeText(searchTerm.trim());
+
+  const filteredActivePatients = useMemo(
+    () =>
+      !normalizedSearch
+        ? activePatients
+        : activePatients.filter((patient) =>
+            normalizeText(patient.name).includes(normalizedSearch)
+          ),
+    [activePatients, normalizedSearch]
+  );
+
+  const filteredArchivedPatients = useMemo(
+    () =>
+      !normalizedSearch
+        ? archivedPatients
+        : archivedPatients.filter((patient) =>
+            normalizeText(patient.name).includes(normalizedSearch)
+          ),
+    [archivedPatients, normalizedSearch]
+  );
+
+  useEffect(() => {
+    if (!normalizedSearch) {
+      if (!selectedPatient && (activePatients.length || archivedPatients.length)) {
+        setSelectedPatient(activePatients[0] || archivedPatients[0] || null);
+      }
+      return;
+    }
+
+    const isSelectedVisible =
+      (selectedPatient &&
+        (filteredActivePatients.some((patient) => patient.id === selectedPatient.id) ||
+          filteredArchivedPatients.some((patient) => patient.id === selectedPatient.id))) ||
+      false;
+
+    if (!isSelectedVisible) {
+      const fallback = filteredActivePatients[0] || filteredArchivedPatients[0] || null;
+      setSelectedPatient(fallback);
+    }
+  }, [
+    normalizedSearch,
+    filteredActivePatients,
+    filteredArchivedPatients,
+    selectedPatient,
+    activePatients,
+    archivedPatients,
+  ]);
+
   const formatDate = (value) =>
     value ? dayjs(value).format("DD/MM/YYYY") : "Não informado";
 
   const activeSelectedIndex =
-    selectedPatient && activePatients
-      ? activePatients.findIndex((patient) => patient.id === selectedPatient.id)
+    selectedPatient && filteredActivePatients
+      ? filteredActivePatients.findIndex((patient) => patient.id === selectedPatient.id)
       : -1;
   const archivedSelectedIndex =
-    selectedPatient && archivedPatients
-      ? archivedPatients.findIndex((patient) => patient.id === selectedPatient.id)
+    selectedPatient && filteredArchivedPatients
+      ? filteredArchivedPatients.findIndex((patient) => patient.id === selectedPatient.id)
       : -1;
   const selectedDisplayNumber =
     activeSelectedIndex >= 0
@@ -290,6 +347,30 @@ export default function PacienteForm() {
         )}
       </section>
 
+      <section className="card search-card">
+        <div className="search-panel">
+          <div>
+            <h2>Buscar pacientes</h2>
+            <p>Filtre rapidamente por nome nas listas abaixo.</p>
+          </div>
+          <label htmlFor="patient-search-input">
+            Nome do paciente
+            <input
+              id="patient-search-input"
+              type="search"
+              placeholder="Digite para pesquisar"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </label>
+        </div>
+        <small className="search-hint">
+          {normalizedSearch
+            ? `Mostrando resultados que correspondem a "${searchTerm}".`
+            : "A busca considera pacientes ativos e arquivados."}
+        </small>
+      </section>
+
       <section className="card list-card">
         <header className="card-header">
           <div>
@@ -309,14 +390,16 @@ export default function PacienteForm() {
               </tr>
             </thead>
             <tbody>
-              {activePatients.length === 0 ? (
+              {filteredActivePatients.length === 0 ? (
                 <tr>
                   <td colSpan="5" style={{ textAlign: "center", padding: "1.5rem" }}>
-                    Nenhum paciente ativo até o momento.
+                    {normalizedSearch
+                      ? `Nenhum paciente ativo encontrado para "${searchTerm}".`
+                      : "Nenhum paciente ativo até o momento."}
                   </td>
                 </tr>
               ) : (
-                activePatients.map((patient, index) => (
+                filteredActivePatients.map((patient, index) => (
                   <tr
                     key={patient.id}
                     onClick={() => setSelectedPatient(patient)}
@@ -370,14 +453,16 @@ export default function PacienteForm() {
               </tr>
             </thead>
             <tbody>
-              {archivedPatients.length === 0 ? (
+              {filteredArchivedPatients.length === 0 ? (
                 <tr>
                   <td colSpan="5" style={{ textAlign: "center", padding: "1.5rem" }}>
-                    Nenhum paciente arquivado.
+                    {normalizedSearch
+                      ? `Nenhum paciente arquivado encontrado para "${searchTerm}".`
+                      : "Nenhum paciente arquivado."}
                   </td>
                 </tr>
               ) : (
-                archivedPatients.map((patient, index) => (
+                filteredArchivedPatients.map((patient, index) => (
                   <tr
                     key={patient.id}
                     onClick={() => setSelectedPatient(patient)}
