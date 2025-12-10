@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import {
@@ -33,6 +33,8 @@ export default function PacienteForm() {
   const [status, setStatus] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const detailSectionRef = useRef(null);
+  const [shouldScrollDetail, setShouldScrollDetail] = useState(false);
 
   const loadPatients = async () => {
     try {
@@ -156,6 +158,19 @@ export default function PacienteForm() {
     }
   };
 
+  const handleSelectPatient = (patient) => {
+    if (!patient) {
+      return;
+    }
+    setSelectedPatient((current) => {
+      if (current?.id === patient.id) {
+        return current;
+      }
+      return patient;
+    });
+    setShouldScrollDetail(true);
+  };
+
   const summary = useMemo(
     () => ({
       active: activePatients.length,
@@ -220,6 +235,13 @@ export default function PacienteForm() {
     activePatients,
     archivedPatients,
   ]);
+
+  useEffect(() => {
+    if (shouldScrollDetail && detailSectionRef.current) {
+      detailSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      setShouldScrollDetail(false);
+    }
+  }, [shouldScrollDetail, selectedPatient]);
 
   const formatDate = (value) =>
     value ? dayjs(value).format("DD/MM/YYYY") : "Não informado";
@@ -402,7 +424,7 @@ export default function PacienteForm() {
                 filteredActivePatients.map((patient, index) => (
                   <tr
                     key={patient.id}
-                    onClick={() => setSelectedPatient(patient)}
+                    onClick={() => handleSelectPatient(patient)}
                     className={selectedPatient?.id === patient.id ? "row-active" : ""}
                   >
                     <td>
@@ -465,7 +487,7 @@ export default function PacienteForm() {
                 filteredArchivedPatients.map((patient, index) => (
                   <tr
                     key={patient.id}
-                    onClick={() => setSelectedPatient(patient)}
+                    onClick={() => handleSelectPatient(patient)}
                     className={selectedPatient?.id === patient.id ? "row-active" : ""}
                   >
                     <td>
@@ -498,7 +520,7 @@ export default function PacienteForm() {
       </section>
 
       {selectedPatient ? (
-        <section className="card detail-card">
+        <section className="card detail-card" ref={detailSectionRef} id="resumo-clinico">
           <header className="card-header">
             <div>
               <h2>Resumo clínico</h2>
