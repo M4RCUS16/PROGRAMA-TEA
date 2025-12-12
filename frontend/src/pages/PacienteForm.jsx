@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import {
@@ -33,8 +33,7 @@ export default function PacienteForm() {
   const [status, setStatus] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const detailSectionRef = useRef(null);
-  const [shouldScrollDetail, setShouldScrollDetail] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const loadPatients = async () => {
     try {
@@ -168,7 +167,17 @@ export default function PacienteForm() {
       }
       return patient;
     });
-    setShouldScrollDetail(true);
+    setIsDetailOpen(true);
+  };
+
+  const handleOpenDetail = () => {
+    if (selectedPatient) {
+      setIsDetailOpen(true);
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false);
   };
 
   const summary = useMemo(
@@ -237,11 +246,10 @@ export default function PacienteForm() {
   ]);
 
   useEffect(() => {
-    if (shouldScrollDetail && detailSectionRef.current) {
-      detailSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-      setShouldScrollDetail(false);
+    if (!selectedPatient) {
+      setIsDetailOpen(false);
     }
-  }, [shouldScrollDetail, selectedPatient]);
+  }, [selectedPatient]);
 
   const formatDate = (value) =>
     value ? dayjs(value).format("DD/MM/YYYY") : "Não informado";
@@ -391,6 +399,17 @@ export default function PacienteForm() {
             ? `Mostrando resultados que correspondem a "${searchTerm}".`
             : "A busca considera pacientes ativos e arquivados."}
         </small>
+        <div className="detail-launcher">
+          <p>Selecione um paciente e abra o resumo clínico quando necessário.</p>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={handleOpenDetail}
+            disabled={!selectedPatient}
+          >
+            Ver resumo clínico
+          </button>
+        </div>
       </section>
 
       <section className="card list-card">
@@ -519,70 +538,99 @@ export default function PacienteForm() {
         </div>
       </section>
 
-      {selectedPatient ? (
-        <section className="card detail-card" ref={detailSectionRef} id="resumo-clinico">
-          <header className="card-header">
-            <div>
-              <h2>Resumo clínico</h2>
-              <p>Informações registradas neste cadastro.</p>
-            </div>
-          </header>
-          <div className="patient-detail">
-            <div>
-              <span className="detail-label">Paciente</span>
-              <h3>
-                {selectedPatient.name}
-                {selectedDisplayNumber
-                  ? ` · Paciente #${selectedDisplayNumber}`
-                  : ""}
-              </h3>
-              <p className="detail-subtitle">
-                Nascido em {dayjs(selectedPatient.birth_date).format("DD [de] MMMM [de] YYYY")}
-              </p>
-            </div>
-            <div className="detail-grid">
+      {selectedPatient && isDetailOpen ? (
+        <div
+          className="detail-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="resumo-clinico-titulo"
+          onClick={handleCloseDetail}
+        >
+          <section
+            className="card detail-card detail-dialog"
+            id="resumo-clinico"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="detail-close"
+              onClick={handleCloseDetail}
+              aria-label="Fechar resumo clínico"
+            >
+              &times;
+            </button>
+            <header className="card-header">
               <div>
-                <span className="detail-label">Responsável</span>
-                <p>{selectedPatient.guardian_name}</p>
+                <h2 id="resumo-clinico-titulo">Resumo clínico</h2>
+                <p>Informações registradas neste cadastro.</p>
               </div>
+            </header>
+            <div className="patient-detail">
               <div>
-                <span className="detail-label">Contato</span>
-                <p>{selectedPatient.contact || "Não informado"}</p>
-              </div>
-              <div>
-                <span className="detail-label">Endereço</span>
-                <p>{selectedPatient.address || "Não informado"}</p>
-              </div>
-              <div>
-                <span className="detail-label">Profissional responsável</span>
-                <p>
-                  {selectedPatient.professional
-                    ? `${selectedPatient.professional.first_name || ""} ${
-                        selectedPatient.professional.last_name || ""
-                      }`.trim() || selectedPatient.professional.email
-                    : "Registrado pelo profissional atual"}
+                <span className="detail-label">Paciente</span>
+                <h3>
+                  {selectedPatient.name}
+                  {selectedDisplayNumber
+                    ? ` · Paciente #${selectedDisplayNumber}`
+                    : ""}
+                </h3>
+                <p className="detail-subtitle">
+                  {selectedPatient.birth_date
+                    ? `Nascido em ${dayjs(selectedPatient.birth_date).format(
+                        "DD [de] MMMM [de] YYYY"
+                      )}`
+                    : "Data de nascimento não informada"}
                 </p>
               </div>
+              <div className="detail-grid">
+                <div>
+                  <span className="detail-label">Responsável</span>
+                  <p>{selectedPatient.guardian_name}</p>
+                </div>
+                <div>
+                  <span className="detail-label">Contato</span>
+                  <p>{selectedPatient.contact || "Não informado"}</p>
+                </div>
+                <div>
+                  <span className="detail-label">Endereço</span>
+                  <p>{selectedPatient.address || "Não informado"}</p>
+                </div>
+                <div>
+                  <span className="detail-label">Profissional responsável</span>
+                  <p>
+                    {selectedPatient.professional
+                      ? `${selectedPatient.professional.first_name || ""} ${
+                          selectedPatient.professional.last_name || ""
+                        }`.trim() || selectedPatient.professional.email
+                      : "Registrado pelo profissional atual"}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <span className="detail-label">Histórico resumido</span>
+                <p className="detail-history">
+                  {selectedPatient.summary_history ||
+                    "Nenhuma síntese clínica foi adicionada até o momento."}
+                </p>
+              </div>
+              {selectedPatient.clinical_attachment ? (
+                <a
+                  className="button secondary"
+                  href={selectedPatient.clinical_attachment}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Ver anexo clínico
+                </a>
+              ) : null}
             </div>
-            <div>
-              <span className="detail-label">Histórico resumido</span>
-              <p className="detail-history">
-                {selectedPatient.summary_history ||
-                  "Nenhuma síntese clínica foi adicionada até o momento."}
-              </p>
+            <div className="detail-actions">
+              <button type="button" className="button secondary" onClick={handleCloseDetail}>
+                Fechar
+              </button>
             </div>
-            {selectedPatient.clinical_attachment ? (
-              <a
-                className="button secondary"
-                href={selectedPatient.clinical_attachment}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Ver anexo clínico
-              </a>
-            ) : null}
-          </div>
-        </section>
+          </section>
+        </div>
       ) : null}
     </div>
   );
